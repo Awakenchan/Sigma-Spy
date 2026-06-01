@@ -23,7 +23,7 @@ local AssetsConfig = {
 }
 
 local function DownloadAssets()
-	local HttpService = Services.HttpService
+	local HttpService = cloneref(game:GetService("HttpService"))
 	local req = request or http_request
 	if not req then
 		warn("[Assets] Executor does not support HTTP requests, skipping asset download")
