@@ -1,4 +1,18 @@
-local FunctionLibrary = require("@core/Functions")
+local SafeString = function(Object)
+    local Metatable = getrawmetatable(Object)
+    local IsTable = typeof(Object) == "table" or typeof(Object) == "userdata"
+    local __tostring = Metatable and rawget(Metatable, "__tostring")
+
+    if not IsTable or type(__tostring) ~= "function" then
+        return tostring(Object)
+    end
+
+    rawset(Metatable, "__tostring", nil)
+    local String = tostring(Object)
+    rawset(Metatable, "__tostring", __tostring)
+
+    return String
+end
 local a a={cache={},load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}
 end return a.cache[b].c end}do function a.a()local b,c,d='8.0',cloneref or
 function(b)return b end,{Theme={Syntax={Text=Color3.fromRGB(204,204,204),
@@ -27,7 +41,7 @@ remove(s.Signal.Connections,t)end end s.Connect=function(u,v)if type(v)~=
 Func=v,Disconnect=t}u.Connections[#u.Connections+1]=w return w end s.Fire=
 function(u,...)for v,w in next,u.Connections do xpcall(coroutine.wrap(w.Func),
 function(x)warn(x..'\n'..debug.traceback())end,...)end end local u={__index=s,
-__tostring=function(u)return'Signal: '..FunctionLibrary.SafeString(#u.Connections)..' Connections'
+__tostring=function(u)return'Signal: '..SafeString(#u.Connections)..' Connections'
 end}local v=function()local v={}v.Connections={}return setmetatable(v,u)end
 return{new=v}end)()q.CreateArrow=function(s,t,u)local v,w=t,p('Frame',{
 BackgroundTransparency=1,Name='Arrow',Size=UDim2.new(0,s,0,s)})if u=='up'then
@@ -133,7 +147,7 @@ GuiElems.MarkerFrame y:ClearAllChildren()for z,A in pairs(x.Markers)do if z<x.
 TotalSpace then p('Frame',{BackgroundTransparency=0,BackgroundColor3=A,
 BorderSizePixel=0,Position=x.Horizontal and UDim2.new(z/x.TotalSpace,0,1,-6)or
 UDim2.new(1,-6,z/x.TotalSpace,0),Size=x.Horizontal and UDim2.new(0,1,0,6)or
-UDim2.new(0,6,0,1),Name='Marker'..FunctionLibrary.SafeString(z),Parent=y})end end end s.AddMarker=
+UDim2.new(0,6,0,1),Name='Marker'..SafeString(z),Parent=y})end end end s.AddMarker=
 function(x,y,z)x.Markers[y]=z or Color3.new(0,0,0)end s.ScrollTo=function(x,y,z)
 x.Index=y x:Update()if not z then x.Scrolled:Fire()end end s.ScrollUp=function(x
 )x.Index=x.Index-x.Increment x:Update()end s.ScrollDown=function(x)x.Index=x.
@@ -201,7 +215,7 @@ fireclickdetector=true,firetouchinterest=true,fireproximityprompt=true},false,{[
 "'"]='&apos;',['"']='&quot;',['<']='&lt;',['>']='&gt;',['&']='&amp;'},'\u{cd}'
 local A,B,C,D,E,F=(' %s%s '):format(z,z),{[('[^%s] %s'):format(z,z)]=0,[(' %s%s'
 ):format(z,z)]=-1,[('%s%s '):format(z,z)]=2,[('%s [^%s]'):format(z,z)]=1},{},
-function()local A,B,C=getfenv(),type,FunctionLibrary.SafeString for D,E in next,w do local F=A[D]
+function()local A,B,C=getfenv(),type,SafeString for D,E in next,w do local F=A[D]
 if B(F)=='table'then local G={}for H,I in next,F do G[H]=true end w[D]=G end end
 local D,E={},Enum:GetEnums()for F=1,#E do D[C(E[F])]=true end w.Enum=D x=true
 end,function(A)local B=A.GuiElems.EditBox B.Focused:Connect(function()A:
@@ -316,7 +330,7 @@ UpdateCursor()G:JumpToCursor()end s.JumpToCursor=function(G)G:Refresh()end s.
 UpdateCursor=function(G,H)local I,J=G.GuiElems.LinesFrame,G.GuiElems.Cursor
 local K,L=math.max(0,I.AbsoluteSize.X),math.max(0,I.AbsoluteSize.Y)local M,N,O,P
 ,Q,R=math.ceil(L/G.FontSize),math.ceil(K/math.ceil(G.FontSize/2)),G.ViewX,G.
-ViewY,FunctionLibrary.SafeString(#G.Lines),math.ceil(G.FontSize/2)local S=#Q*R+4*R if H then local
+ViewY,SafeString(#G.Lines),math.ceil(G.FontSize/2)local S=#Q*R+4*R if H then local
 T=G.GuiElems.LinesFrame local U,V,W,X,Y,Z=T.AbsolutePosition.X,T.
 AbsolutePosition.Y,H.Position.X,H.Position.Y,math.ceil(G.FontSize/2),G.FontSize
 G.CursorX=G.ViewX+math.round((W-U)/Y)G.CursorY=G.ViewY+math.floor((X-V)/Z)end
@@ -385,7 +399,7 @@ S..(Z~=W and(Z..ag..'</font>')or ag)end if aa.Lines[Q]then N=N..(Q-1==aa.CursorY
 and('<b>'..Q..'</b>\n')or Q..'\n')end P.Label.Text=S end for ad=H+1,#aa.
 LineFrames do aa.LineFrames[ad]:Destroy()aa.LineFrames[ad]=nil end aa.Frame.
 LineNumbers.Text=N aa:UpdateCursor()end s.UpdateView=function(aa)local ab,ac=
-FunctionLibrary.SafeString(#aa.Lines),math.ceil(aa.FontSize/2)local ad,ae=#ab*ac+4*ac,aa.Frame.
+SafeString(#aa.Lines),math.ceil(aa.FontSize/2)local ad,ae=#ab*ac+4*ac,aa.Frame.
 Lines local af,ag=ae.AbsoluteSize.X,ae.AbsoluteSize.Y local ah,ai,aj,ak=math.
 ceil(ag/aa.FontSize),aa.MaxTextCols*ac,aa.ScrollV,aa.ScrollH aj.VisibleSpace=ah
 aj.TotalSpace=#aa.Lines+1 ak.VisibleSpace=math.ceil(af/ac)ak.TotalSpace=aa.
@@ -871,7 +885,7 @@ UIFlexMode.Fill,AutomaticSize=Enum.AutomaticSize.None})local ah=aa:
 GetChildOfClass(ae,'UIFlexItem')ah.FlexMode=ag.UIFlexMode ae.Size=ag.Size ae.
 AutomaticSize=ag.AutomaticSize end},{Properties={'Label'},Callback=function(ad,
 ae,af)local ag,ah=ad.Class,ae:FindFirstChild'Label'if not ah then return end ah.
-Text=FunctionLibrary.SafeString(af)function ag:SetLabel(aj)ah.Text=aj return self end end},{
+Text=SafeString(af)function ag:SetLabel(aj)ah.Text=aj return self end end},{
 Properties={'NoGradient'},WindowProperties={'NoGradients'},Callback=function(ad,
 ae,af)local ag=ae:FindFirstChildOfClass'UIGradient'if not ag then return end ag.
 Enabled=af end},{Properties={'UiPadding','PaddingBottom','PaddingTop',
@@ -1074,7 +1088,7 @@ local q,r=self:ClassIgnores(o),typeof(p)=='function'local s=g[o]~=nil or r if s
 and not q then g[o]=p return end xpcall(function()h[o]=p end,function(t)if i
 then self:Warn(`Newindex Error: {h}.{o} = {p}\n{t}`)end g[o]=p end)end return
 setmetatable({},m)end function aa:Concat(g,h)local i=''for m,n in next,g do i..=
-FunctionLibrary.SafeString(n)..(m~=#g and h or'')end return i end function aa:GetValueFromAliases(
+SafeString(n)..(m~=#g and h or'')end return i end function aa:GetValueFromAliases(
 g,h)for i,m in g do local n=h[m]if n~=nil then return n end end return nil end
 function aa:RecursiveCall(g,h)for i,m in next,g:GetDescendants()do h(m)end end
 function aa:ApplyFlags(g)local h,i,m,n=self.ElementFlags,g.Object,g.Class,g.
@@ -1185,7 +1199,7 @@ function(h,i)i.Parent=aa.Container.Overlays local m,n,o,p,q=i.Selected,i.Items,i
 .OnSelected,h:PopupCanvas(i)local r,s,t=aa:MergeMetatables(i,p),{},function(r)o(
 r)end function i:ClearEntries()for u,v in s do v:Remove()end end function i:
 SetItems(u,v)local x=u[1]self:ClearEntries()for y,z in u do local A,B=x and z or
-y,y==v or z==v local C=p:Selectable{Text=FunctionLibrary.SafeString(A),Selected=B,ZIndex=6,
+y,y==v or z==v local C=p:Selectable{Text=SafeString(A),Selected=B,ZIndex=6,
 Callback=function()return t(A)end}table.insert(s,C)end end if n then i:SetItems(
 n,m)end return r,q end})aa:DefineElement('OverlayScroll',{Base={ElementClass=
 'OverlayScroll',Spacing=UDim.new(0,4)},Create=function(h,i)local m,n,o=h.
@@ -1298,7 +1312,7 @@ m or{}aa:CheckConfig(m,{Name='Tab',AutoSize='Y',Focused=false,OnClosure=f})local
 n,o,p,q,r,s,t,u,v=self.AutoSelectNewTabs,self.WindowClass,self.ParentCanvas,self
 .Tabs,self.TabsFrame,self.OnTabCreate,m.Focused,m.Name,m.Icon local x,y=t or#q<=
 0 and n,aa:InsertPrefab('TabButton',m)y.Parent=r local z=y.Button local A,B=z:
-FindFirstChildOfClass'UIPadding',z.Label B.Text=FunctionLibrary.SafeString(u)Merge(m,{TabButton=y}
+FindFirstChildOfClass'UIPadding',z.Label B.Text=SafeString(u)Merge(m,{TabButton=y}
 )local C,D=function()self:SetActiveTab(m)end,{Closeable=function()local C=p:
 RadioButton{Parent=z,Visible=not self.NoClose,Icon=aa.Icons.Close,IconSize=UDim2
 .fromOffset(11,11),LayoutOrder=3,ZIndex=2,UsePropertiesList=true,Callback=
@@ -1401,7 +1415,7 @@ Disabled,n.Value,aa:InsertPrefab('InputBox',n)local u=t.Frame local v,x=u.Input,
 aa:MergeMetatables(n,t)m:Label{Parent=t,Text=q,AutomaticSize=Enum.AutomaticSize.
 X,Size=UDim2.fromOffset(0,19),Position=UDim2.new(1,4),LayoutOrder=2}aa:
 SetProperties(v,{PlaceholderText=p,MultiLine=o})local y=function(...)local y=n.
-Callback y(x,...)end function n:SetValue(z)v.Text=FunctionLibrary.SafeString(z)self.Value=z return
+Callback y(x,...)end function n:SetValue(z)v.Text=SafeString(z)self.Value=z return
 self end function n:SetDisabled(z)self.Disabled=z t.Interactable=not z m:
 SetColorTags({[q]=z and'LabelDisabled'or'Label'},true)return self end function n
 :Clear()v.Text=''return self end local z=function()local z=v.Text n.Value=z y(z)
@@ -1441,7 +1455,7 @@ if not x then return end local y=u.Text local z=y:split'\n'if#z>x then local A=`
 z[1]}\\n`local B=y:sub(#A)self:SetValue(B)end return self end function n:
 UpdateScroll()local x=s.AbsoluteCanvasSize s.CanvasPosition=Vector2.new(0,x.Y)
 return self end function n:SetValue(x)if not self.Enabled then return end u.Text
-=FunctionLibrary.SafeString(x)self:Update()return self end function n:GetValue()return u.Text end
+=SafeString(x)self:Update()return self end function n:GetValue()return u.Text end
 function n:Clear()u.Text=''self:Update()return self end function n:AppendText(
 ...)local x,y=self:CountLines(true),aa:Concat({...},' ')if x==0 then return self
 :SetValue(y)end local z=self:GetValue()local A=`{z}\n{y}`self:SetValue(A)return
@@ -1507,7 +1521,7 @@ n:SetTitle(o)n:SetArrowVisible(not z)aa:ApplyStyle(B,q)H:TagElements{[B]=
 IconPadding=UDim.new(0,2),TitleBarProperties={Size=UDim2.new(1,0,0,13)}},Create=
 g.CollapsingHeader})aa:DefineElement('Separator',{Base={NoAutoTag=true,
 NoAutoTheme=true},Create=function(m,n)local o,p=n.Text,aa:InsertPrefab(
-'SeparatorText',n)m:Label{Text=FunctionLibrary.SafeString(o),Visible=o~=nil,Parent=p,LayoutOrder=2
+'SeparatorText',n)m:Label{Text=SafeString(o),Visible=o~=nil,Parent=p,LayoutOrder=2
 ,Size=UDim2.new(),PaddingLeft=UDim.new(0,4),PaddingRight=UDim.new(0,4)}m:
 TagElements{[p.Left]='Separator',[p.Right]='Separator'}return p end})aa:
 DefineElement('Canvas',{Base={},Create=function(m,n)local o,p,q=m.WindowClass,n.
@@ -1524,7 +1538,7 @@ WindowClass=o,Class=n}return q,p end})aa:DefineElement('Indent',{Base={Offset=15
 ,PaddingTop=UDim.new(),PaddingBottom=UDim.new(),PaddingRight=UDim.new()},Create=
 function(m,n)local o=n.Offset n.PaddingLeft=UDim.new(0,o)return m:Canvas(n)end})
 aa:DefineElement('BulletText',{Base={},Create=function(m,n)local o=n.Rows for p,
-q in next,o do local r=m:Bullet(n)r:Label{Text=FunctionLibrary.SafeString(q),LayoutOrder=2,Size=
+q in next,o do local r=m:Bullet(n)r:Label{Text=SafeString(q),LayoutOrder=2,Size=
 UDim2.fromOffset(0,14)}end end})aa:DefineElement('Bullet',{Base={Padding=3,Icon=
 aa.Icons.Dot,IconSize=UDim2.fromOffset(5,5)},Create=function(m,n)local o,p,q=m.
 WindowClass,n.Padding,aa:InsertPrefab('Bullet',n)local r,s=aa:MakeCanvas{Element
@@ -1550,7 +1564,7 @@ Size=UDim2.fromScale(F,1)}end,Snap=function(F,G,H,I)local J=(math.round(G)-H)/I
 return{Size=UDim2.fromScale(1/I,1),Position=UDim2.fromScale(J,0.5)}end},function
 (...)local F=n.Callback return F(B,...)end function n:SetDisabled(H)self.
 Disabled=H x.Interactable=not H m:SetColorTags({[E]=H and'LabelDisabled'or
-'Label'},true)return self end function n:SetValueText(H)A.Text=FunctionLibrary.SafeString(H)end
+'Label'},true)return self end function n:SetValueText(H)A.Text=SafeString(H)end
 function n:SetValue(H,I)local J,K,L,M=m:GetThemeKey'AnimationTweenInfo',n.
 Minimum,n.Maximum,H local N=L-K if not I then M=(H-K)/N else H=K+(N*M)end M=math
 .clamp(M,0,1)local O=F[u](M,H,K,L)ae:Tween{Object=z,Tweeninfo=J,NoAnimation=r,
@@ -1642,7 +1656,7 @@ return r,s end})aa:DefineElement('Combo',{Base={Value='',Placeholder='',Callback
 =f,Items={},Disabled=false,WidthFitPreview=false,Label='Combo'},Create=function(
 p,q)local r,s,t,u,v,x,y=q.Placeholder,q.NoAnimation,q.Selected,q.Label,q.
 Disabled,q.WidthFitPreview,aa:InsertPrefab('Combo',q)local z,A,B=aa:
-MergeMetatables(q,y),(y.Combo)local C,D,E=p:Label{Text=FunctionLibrary.SafeString(r),Parent=A,Name
+MergeMetatables(q,y),(y.Combo)local C,D,E=p:Label{Text=SafeString(r),Parent=A,Name
 ='ValueText'},p:ArrowButton{Parent=A,Interactable=false,Size=UDim2.fromOffset(19
 ,19),LayoutOrder=2},p:Label{Text=u,Parent=y,LayoutOrder=2}if x then aa:
 SetProperties(y,{AutomaticSize=Enum.AutomaticSize.XY,Size=UDim2.new(0,0,0,0)})aa
@@ -1651,7 +1665,7 @@ SetProperties(y,{AutomaticSize=Enum.AutomaticSize.XY,Size=UDim2.new(0,0,0,0)})aa
 function(F,G)local H=p:GetThemeKey'AnimationTweenInfo'y.Interactable=not F ae:
 HeaderCollapseToggle{Tweeninfo=H,NoAnimation=G,Collapsed=not F,Toggle=D.Icon}end
 local function H()local I,J=q.GetItems,q.Items if I then return I()end return J
-end function q:SetValueText(I)C.Text=FunctionLibrary.SafeString(I)end function q:ClosePopup()if
+end function q:SetValueText(I)C.Text=SafeString(I)end function q:ClosePopup()if
 not B then return end B:ClosePopup(true)end function q:SetDisabled(I)self.
 Disabled=I y.Interactable=not I p:SetColorTags({[E]=I and'LabelDisabled'or
 'Label'},true)return self end function q:SetValue(I)local J=H()local K=J[I]local
@@ -1686,7 +1700,7 @@ then aa:SetFocusedWindow(self)end return self end function p:ToggleVisibility(q)
 local r=self.Visible self:SetVisible(not r)end function p:GetWindowSize()return
 self.WindowFrame.AbsoluteSize end function p:GetTitleBarSizeY()local q=self.
 TitleBar return q.Visible and q.AbsoluteSize.Y or 0 end function p:SetTitle(q)
-self.TitleLabel.Text=FunctionLibrary.SafeString(q)return self end function p:SetPosition(q)self.
+self.TitleLabel.Text=SafeString(q)return self end function p:SetPosition(q)self.
 WindowFrame.Position=q return self end function p:SetSize(q,r)local s=self.
 WindowFrame if typeof(q)=='Vector2'then q=UDim2.fromOffset(q.X,q.Y)end s.Size=q
 self.Size=q return self end function p:SetCanvasInteractable(q)local r=self.Body
