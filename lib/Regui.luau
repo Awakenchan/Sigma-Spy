@@ -804,39 +804,8 @@ Text=`Hello {B},{z}`}end end local z=u:TreeNode{Title='With headers'}local A,B=z
 local F=p:Column()F:Label{Text=E}continue end local F=p:NextColumn()F:Label{Text
 =`Hello {D},{C}`}end end end end 
 function a.f()
-    local folderPath = getgenv().assetpath or "GcView@awakenkn/GcView@Assets" 
-    local getasset = getcustomasset
-    if getasset then
-        local assets = {
-            "Dot","Arrow","Close","Checkmark","Cat","Script","Settings","Info","Move",
-            "Roblox","Warning","Audio","Shop","CharacterDance","Pants","Home","Robux",
-            "Badge","SpawnLocation","Sword","Clover","Star","Code","Paw","Shield",
-            "Shield2","File","Location","Puzzle","Discord","Premium","Friend",
-            "User","Duplicate","ChatBox","ChatBox2","Devices","Weight","Image","Profile",
-            "Admin","PaintBrush","Speed","NoConnection","Connection","Globe","Box",
-            "Crown","Control","Send","FastForward","Pause","Reload","Joystick",
-            "Controller","Lock","Calculator","Sun","Moon","Prohibited","Flag","Website",
-            "Telegram","MusicNote","Music","Headphones","Phone","Smartphone","Desktop",
-            "Desktop2","Laptop","Server","Wedge","Drill","Character"
-        }
-
-        local t = {}
-
-        for _, name in ipairs(assets) do
-            local path = ("%s/%s.png"):format(folderPath, name)
-            if isfile and isfile(path) and getasset then
-                local ok, result = pcall(getasset, path)
-                if ok and result then
-                    t[name] = result
-                else
-                    warn("⚠️ Failed to load local asset:", name)
-                end
-            else
-                warn("⚠️ Missing asset file:", path)
-            end
-        end
-        return t
-    else
+    local folderPath = getgenv().assetpath or "Sigma Spy/assets"
+    local function fallback()
         return{
             Dot='rbxasset://textures/whiteCircle.png',Arrow=
             'rbxasset://textures/ui/AvatarContextMenu_Arrow.png',Close=
@@ -879,6 +848,68 @@ function a.f()
             'rbxassetid://9692125126',Wedge='rbxassetid://9086583059',Drill=
             'rbxassetid://11959189471',Character='rbxassetid://13285102351'}
     end
+
+    if not getcustomasset or not isfolder or not isfolder(folderPath) then
+        return fallback()
+    end
+
+    local assets = {
+        "Dot","Arrow","Close","Checkmark","Cat","Script","Settings","Info","Move",
+        "Roblox","Warning","Audio","Shop","CharacterDance","Pants","Home","Robux",
+        "Badge","SpawnLocation","Sword","Clover","Star","Code","Paw","Shield",
+        "Shield2","File","Location","Puzzle","Discord","Premium","Friend",
+        "User","Duplicate","ChatBox","ChatBox2","Devices","Weight","Image","Profile",
+        "Admin","PaintBrush","Speed","NoConnection","Connection","Globe","Box",
+        "Crown","Control","Send","FastForward","Pause","Reload","Joystick",
+        "Controller","Lock","Calculator","Sun","Moon","Prohibited","Flag","Website",
+        "Telegram","MusicNote","Music","Headphones","Phone","Smartphone","Desktop",
+        "Desktop2","Laptop","Server","Wedge","Drill","Character"
+    }
+    local found = {}
+    local function scan(dir)
+        local ok, entries = pcall(listfiles, dir)
+        if not ok or not entries then return end
+        for _, full in entries do
+            if isfolder and isfolder(full) then
+                scan(full)
+            else
+                local name = full:match("[\\/]([^\\/]+)%.png$") or full:match("^([^\\/]+)%.png$")
+                if name then
+                    found[name:lower()] = full
+                end
+            end
+        end
+    end
+    scan(folderPath)
+
+    local t = {}
+    local missing = {}
+    for _, name in assets do
+        local path = found[name:lower()]
+        if path then
+            local ok, result = pcall(getcustomasset, path)
+            if ok and result then
+                t[name] = result
+            else
+                table.insert(missing, name)
+            end
+        else
+            table.insert(missing, name)
+        end
+    end
+
+    if #missing > 0 then
+        warn(("[Assets] %d asset(s) not found on disk, using fallbacks for: %s")
+            :format(#missing, table.concat(missing, ", ")))
+        local fb = fallback()
+        for _, name in missing do
+            if fb[name] then
+                t[name] = fb[name]
+            end
+        end
+    end
+
+    return t
 end
 function a.g
 ()return{Light=Color3.fromRGB(50,150,250),Dark=Color3.fromRGB(30,66,115),
