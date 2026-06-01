@@ -20,7 +20,7 @@
 --// File handling configuration 
 local FilesConfig = {
 	UseWorkspace = false,
-	RepoUrl = "https://github.com/Awakenchan/Sigma-Spy/tree/main" -- "http://127.0.0.1:3000"
+	RepoUrl = "https://github.com/Awakenchan/Sigma-Spy" -- "http://127.0.0.1:3000"
 }
 
 --// Service handlers
