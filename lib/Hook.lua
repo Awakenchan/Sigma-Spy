@@ -90,9 +90,10 @@ end
 
 --// hookfunction
 function Hook:HookFunction(Func: UnkFunc, Callback: UnkFunc)
+	local selectedmethod = oth.hook or hookfunction
 	local OriginalFunc
 	local WrappedCallback = newcclosure(Callback)
-	OriginalFunc = clonefunction(hookfunction(Func, function(...)
+	OriginalFunc = clonefunction(selectedmethod(Func, function(...)
 		return HookMiddle(OriginalFunc, WrappedCallback, false, ...)
 	end))
 	return OriginalFunc
