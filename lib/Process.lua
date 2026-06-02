@@ -400,7 +400,7 @@ function Process:Decompile(Script: LocalScript | ModuleScript): string
         Headers = {
             ["content-type"] = "application/json"
         },
-        Body = httpservice:JSONEncode({
+        Body = HttpService:JSONEncode({
             script = encoder(bytecode)
         })
     })
