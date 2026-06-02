@@ -76,14 +76,12 @@ end
 --// getrawmetatable
 function Hook:ReplaceMetaMethod(Object: Instance, Call: string, Callback: MetaFunc): MetaFunc
 	local Metatable = getrawmetatable(Object)
-	local OriginalFunc = clonefunction(Metatable[Call])
-	
-	--// Replace function
-	setreadonly(Metatable, false)
-	Metatable[Call] = newcclosure(function(...)
+	local HookMethod = oth.hook or hookfunction
+
+	local OriginalFunc
+	OriginalFunc = clonefunction(HookMethod(Metatable[Call], newcclosure(function(...)
 		return HookMiddle(OriginalFunc, Callback, false, ...)
-	end)
-	setreadonly(Metatable, true)
+	end)))
 
 	return OriginalFunc
 end
