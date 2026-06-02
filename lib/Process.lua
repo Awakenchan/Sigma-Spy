@@ -1,3 +1,5 @@
+--!nolint DeprecatedApi
+
 type table = {
     [any]: any
 }
@@ -103,6 +105,9 @@ function Process:Merge(Base: table, New: table)
 		Base[Key] = Value
 	end
 end
+local function GetHook()
+	return (oth and oth.hook) or hookfunction
+end
 
 function Process:Init(Data)
     local Modules = Data.Modules
@@ -117,8 +122,9 @@ function Process:Init(Data)
     Hook = Modules.Hook
     Communication = Modules.Communication
     ReturnSpoofs = Modules.ReturnSpoofs
+    local method = GetHook()
 
-    local OldInstancenew; OldInstancenew = hookfunction(getrenv().Instance.new, newcclosure(function(...)
+    local OldInstancenew; OldInstancenew = method(getrenv().Instance.new, newcclosure(function(...)
         local Inst = OldInstancenew(...)
         if typeof(Inst) == "Instance" and Process.RemoteClassData[Inst.ClassName] then
             InstanceCreatedRemotes[Inst :: Event] = true
@@ -362,56 +368,40 @@ function Process:FindCallingLClosure(Offset: number)
 end
 
 function Process:Decompile(Script: LocalScript | ModuleScript): string
-    local ok, bytecode = pcall(getscriptbytecode, Script)
-    if not ok then
-        return "-- failed to read script bytecode\n--[[\n" .. tostring(bytecode) .. "\n--]]"
+    local KonstantAPI = "http://api.plusgiant5.com/konstant/decompile"
+    local ForceKonstant = Config.ForceKonstantDecompiler
+
+    --// Use built-in decompiler if the executor supports it
+    if decompile and not ForceKonstant then 
+        return decompile(Script)
     end
 
-    last = last or 0                   
-    local elapsed = os.clock() - last
-    if elapsed < 0.12 then
-        task.wait(0.12 - elapsed)
+    --// getscriptbytecode
+    local Success, Bytecode = pcall(getscriptbytecode, Script)
+    if not Success then
+        local Error = `--Failed to get script bytecode, error:\n`
+        Error ..= `\n--[[\n{Bytecode}\n]]`
+        return Error, true
     end
-
-    local encoder = base64_encode
-    if not encoder then
-        encoder = function(data)
-            local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-            return ((data:gsub('.', function(x)
-                local r,byte = '',x:byte()
-                for i=8,1,-1 do
-                    r = r .. (byte % 2^i - byte % 2^(i-1) > 0 and '1' or '0')
-                end
-                return r
-            end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
-                if #x < 6 then return '' end
-                local c = 0
-                for i=1,6 do
-                    c = c + (x:sub(i,i) == '1' and 2^(6-i) or 0)
-                end
-                return b:sub(c+1,c+1)
-            end)..({ '', '==', '=' })[#data % 3 + 1])
-        end
-    end
-
-    local res = request({
-        Url = "https://api.lua.expert/decompile",
+    
+    --// Send POST request to the API
+    local Responce = request({
+        Url = KonstantAPI,
+        Body = Bytecode,
         Method = "POST",
         Headers = {
-            ["content-type"] = "application/json"
+            ["Content-Type"] = "text/plain"
         },
-        Body = HttpService:JSONEncode({
-            script = encoder(bytecode)
-        })
     })
 
-    last = os.clock()
-
-    if not res or res.StatusCode ~= 200 then
-        return "-- api request error\n--[[\n" .. (res and res.Body or "no response") .. "\n--]]"
+    --// Error check
+    if Responce.StatusCode ~= 200 then
+        local Error = `--[KONSTANT] Error occured while requesting the API, error:\n`
+        Error ..= `\n--[[\n{Responce.Body}\n]]`
+        return Error, true
     end
 
-    return res.Body
+    return Responce.Body
 end
 
 function Process:GetScriptFromFunc(Func: (...any) -> ...any)
