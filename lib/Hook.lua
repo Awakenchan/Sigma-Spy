@@ -3,7 +3,7 @@ local Hook = {
 	OriginalIndex = nil,
 	PreviousFunctions = {},
 	DefaultConfig = {
-		FunctionPatches = true
+		FunctionPatches = false
 	}
 }
 
@@ -24,7 +24,7 @@ local Communication
 local ExeENV = getfenv(1)
 
 local function GetHook()
-	return (oth and oth.hook) or hookfunction
+	return oth.hook or hookfunction
 end
 
 function Hook:Init(Data)
@@ -90,9 +90,9 @@ function Hook:HookFunction(Func: UnkFunc, Callback: UnkFunc)
 	local WrappedCallback = newcclosure(Callback)
 
 	local OriginalFunc
-	OriginalFunc = clonefunction(HookMethod(Func, function(...)
+	OriginalFunc = HookMethod(Func, function(...)
 		return HookMiddle(OriginalFunc, WrappedCallback, false, ...)
-	end))
+	end)
 
 	return OriginalFunc
 end
