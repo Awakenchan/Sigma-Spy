@@ -124,13 +124,13 @@ function Process:Init(Data)
     ReturnSpoofs = Modules.ReturnSpoofs
     local method = GetHook()
 
-    local OldInstancenew; OldInstancenew = method(getrenv().Instance.new, newcclosure(function(...)
+    local OldInstancenew; OldInstancenew = method(Instance.new, function(...)
         local Inst = OldInstancenew(...)
         if typeof(Inst) == "Instance" and Process.RemoteClassData[Inst.ClassName] then
             InstanceCreatedRemotes[Inst :: Event] = true
         end
         return Inst
-    end))
+    end)
 end
 
 --// Communication
@@ -215,11 +215,9 @@ function Process:DeepCloneTable(Table, Ignore: table?, Visited: table?): table
     
     return New
 end
-
-function Process:Unpack(Table: table)
+function Process:Unpack(Table)
     if not Table then return Table end
-	local Length = table.maxn(Table)
-	return unpack(Table, 1, Length)
+    return table.unpack(Table, 1, Table.n or #Table)
 end
 
 function Process:PushConfig(Overwrites)
