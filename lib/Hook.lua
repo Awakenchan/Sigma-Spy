@@ -98,17 +98,16 @@ function Hook:HookFunction(Func: UnkFunc, Callback: UnkFunc)
 end
 
 --// hookmetamethod
+
 function Hook:HookMetaCall(Object: Instance, Call: string, Callback: MetaFunc): MetaFunc
 	local Metatable = getrawmetatable(Object)
-	local HookMethod = GetHook()
-
-	local OriginalFunc
-	OriginalFunc = clonefunction(HookMethod(Metatable[Call], function(...)
-		return HookMiddle(OriginalFunc, Callback, true, ...)
-	end))
-
-	return OriginalFunc
+	local Unhooked
+	Unhooked = self:HookFunction(Metatable[Call], function(...)
+		return HookMiddle(Unhooked, Callback, true, ...)
+	end)
+	return Unhooked
 end
+
 
 function Hook:HookMetaMethod(Object: Instance, Call: string, Callback: MetaFunc): MetaFunc
 	local Func = newcclosure(Callback)
