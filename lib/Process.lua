@@ -368,42 +368,57 @@ function Process:FindCallingLClosure(Offset: number)
 end
 
 function Process:Decompile(Script: LocalScript | ModuleScript): string
-    local KonstantAPI = "http://api.plusgiant5.com/konstant/decompile"
-    local ForceKonstant = Config.ForceKonstantDecompiler
-
-    --// Use built-in decompiler if the executor supports it
-    if decompile and not ForceKonstant then 
-        return decompile(Script)
+    local ok, bytecode = pcall(getscriptbytecode, Script)
+    if not ok then
+        return "-- failed to read script bytecode\n--[[\n" .. tostring(bytecode) .. "\n--]]"
     end
 
-    --// getscriptbytecode
-    local Success, Bytecode = pcall(getscriptbytecode, Script)
-    if not Success then
-        local Error = `--Failed to get script bytecode, error:\n`
-        Error ..= `\n--[[\n{Bytecode}\n]]`
-        return Error, true
+    last = last or 0                   
+    local elapsed = os.clock() - last
+    if elapsed < 0.12 then
+        task.wait(0.12 - elapsed)
     end
-    
-    --// Send POST request to the API
-    local Responce = request({
-        Url = KonstantAPI,
-        Body = Bytecode,
+
+    local encoder = base64_encode
+    if not encoder then
+        encoder = function(data)
+            local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+            return ((data:gsub('.', function(x)
+                local r,byte = '',x:byte()
+                for i=8,1,-1 do
+                    r = r .. (byte % 2^i - byte % 2^(i-1) > 0 and '1' or '0')
+                end
+                return r
+            end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+                if #x < 6 then return '' end
+                local c = 0
+                for i=1,6 do
+                    c = c + (x:sub(i,i) == '1' and 2^(6-i) or 0)
+                end
+                return b:sub(c+1,c+1)
+            end)..({ '', '==', '=' })[#data % 3 + 1])
+        end
+    end
+
+    local res = request({
+        Url = "https://api.lua.expert/decompile",
         Method = "POST",
         Headers = {
-            ["Content-Type"] = "text/plain"
+            ["content-type"] = "application/json"
         },
+        Body = HttpService:JSONEncode({
+            script = encoder(bytecode)
+        })
     })
 
-    --// Error check
-    if Responce.StatusCode ~= 200 then
-        local Error = `--[KONSTANT] Error occured while requesting the API, error:\n`
-        Error ..= `\n--[[\n{Responce.Body}\n]]`
-        return Error, true
+    last = os.clock()
+
+    if not res or res.StatusCode ~= 200 then
+        return "-- api request error\n--[[\n" .. (res and res.Body or "no response") .. "\n--]]"
     end
 
-    return Responce.Body
+    return res.Body
 end
-
 function Process:GetScriptFromFunc(Func: (...any) -> ...any)
     if not Func then return end
 
