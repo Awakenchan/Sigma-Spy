@@ -367,6 +367,7 @@ function Process:Decompile(Script: LocalScript | ModuleScript): string
         return "-- failed to read script bytecode\n--[[\n" .. tostring(bytecode) .. "\n--]]"
     end
 
+    last = last or 0                   
     local elapsed = os.clock() - last
     if elapsed < 0.12 then
         task.wait(0.12 - elapsed)
