@@ -24,6 +24,18 @@ local Config
 local Communication
 
 local ExeENV = getfenv(1)
+local makeCClosure = newcclosure or function(func)
+	return func
+end
+
+local function isCheckCaller()
+	if not checkcaller then
+		return false
+	end
+
+	local success, result = pcall(checkcaller)
+	return success and result or false
+end
 
 local function cloneRef(value)
 	if typeof(value) ~= "Instance" then
@@ -31,7 +43,10 @@ local function cloneRef(value)
 	end
 
 	if cloneref then
-		return cloneref(value)
+		local success, result = pcall(cloneref, value)
+		if success and result then
+			return result
+		end
 	end
 
 	return value
@@ -51,7 +66,7 @@ function Hook:Init(Data)
 end
 
 --// The callback is expected to return a nil value sometimes which should be ingored
-local HookMiddle = newcclosure(function(OriginalFunc, Callback, AlwaysTable: boolean?, ...)
+local HookMiddle = makeCClosure(function(OriginalFunc, Callback, AlwaysTable: boolean?, ...)
 	--// Invoke callback and check for a reponce otherwise ignored
 	local ReturnValues = Callback(...)
 	if ReturnValues then
@@ -80,10 +95,16 @@ local function Merge(Base: table, New: table)
 end
 
 function Hook:Index(Object: Instance, Key: string)
-    local identity = getthreadidentity()
-    setthreadidentity(8)
+    local identity = getthreadidentity and getthreadidentity() or nil
+    if setthreadidentity then
+        pcall(setthreadidentity, 8)
+    end
+
     local returned = Object[Key]
-    setthreadidentity(identity)
+    if identity and setthreadidentity then
+        pcall(setthreadidentity, identity)
+    end
+
 	return returned
 end
 
@@ -95,9 +116,10 @@ end
 function Hook:ReplaceMetaMethod(Object: Instance, Call: string, Callback: MetaFunc): MetaFunc
 	local Metatable = getrawmetatable(Object)
 	local HookMethod = GetHook()
+	if not HookMethod then return end
 
 	local OriginalFunc
-	OriginalFunc = HookMethod(Metatable[Call], newcclosure(function(...)
+	OriginalFunc = HookMethod(Metatable[Call], makeCClosure(function(...)
 		return HookMiddle(OriginalFunc, Callback, false, ...)
 	end))
 
@@ -107,8 +129,10 @@ end
 --// hookfunction
 function Hook:HookFunction(Func: UnkFunc, Callback: UnkFunc)
 	local HookMethod = GetHook()
+	if not HookMethod then return end
+
 	local OriginalFunc
-	OriginalFunc = HookMethod(Func, newcclosure(function(...)
+	OriginalFunc = HookMethod(Func, makeCClosure(function(...)
 		return HookMiddle(OriginalFunc, Callback, false, ...)
 	end))
 
@@ -127,7 +151,7 @@ function Hook:HookMetaCall(Object: Instance, Call: string, Callback: MetaFunc): 
 end
 
 function Hook:HookMetaMethod(Object: Instance, Call: string, Callback: MetaFunc): MetaFunc
-	local Func = newcclosure(Callback)
+	local Func = makeCClosure(Callback)
 
 	--// Getrawmetatable
 	if Config.ReplaceMetaCallFunc then
@@ -151,7 +175,10 @@ function Hook:PatchFunctions()
 		[pcall] =  function(OldFunc, Func, ...)
 			local Responce = {OldFunc(Func, ...)}
 			local Success, Error = Responce[1], Responce[2]
-			local IsC = iscclosure(Func)
+			local IsC = iscclosure and iscclosure(Func) or false
+			if Success == false then
+				Error = tostring(Error)
+			end
 
 			--// Patch c-closure error detection
 			if Success == false and IsC then
@@ -185,7 +212,7 @@ function Hook:PatchFunctions()
 			local ENV = Responce[1]
 
 			--// __tostring ENV detection patch
-			if not checkcaller() and ENV == ExeENV then
+			if not isCheckCaller() and ENV == ExeENV then
 				Communication:ConsolePrint("ENV escape patched")
 				return OldFunc(999999, ...)
 			end
@@ -196,10 +223,11 @@ function Hook:PatchFunctions()
 
 	--// Hook each function
 	for Func, CallBack in Patches do
-		local Wrapped = newcclosure(CallBack)
+		local Wrapped = makeCClosure(CallBack)
 		local OldFunc; OldFunc = self:HookFunction(Func, function(...)
 			return Wrapped(OldFunc, ...)
 		end)
+		if not OldFunc then continue end
 
 		--// Cache previous function
 		self.PreviousFunctions[Func] = OldFunc
@@ -227,7 +255,7 @@ local function ProcessRemote(OriginalFunc, MetaMethod: string, self, Method: str
 		OriginalFunc = OriginalFunc,
 		MetaMethod = MetaMethod,
 		TransferType = "Send",
-		IsExploit = checkcaller()
+		IsExploit = isCheckCaller()
 	}, self, ...)
 end
 
@@ -264,7 +292,7 @@ function Hook:BeginHooks()
 	--// Namecall hook
 	local OriginalNameCall
 	OriginalNameCall = self:HookMetaMethod(game, "__namecall", function(self, ...)
-		local Method = getnamecallmethod()
+		local Method = getnamecallmethod and getnamecallmethod() or nil
 		return ProcessRemote(OriginalNameCall, "__namecall", self, Method, ...)
 	end)
 
@@ -321,7 +349,7 @@ function Hook:ConnectClientRecive(Remote)
             Method = Method,
             IsReceive = true,
             MetaMethod = "Connect",
-			IsExploit = checkcaller()
+			IsExploit = isCheckCaller()
         }, Remote, ...)
 	end
 
@@ -368,6 +396,8 @@ function Hook:BeginService(Libraries, ExtraData, ChannelId, ...)
 
 	--// Communication configuration
 	local Channel, IsWrapped = Communication:GetCommChannel(ChannelId)
+	if not Channel then return end
+
 	Communication:SetChannel(Channel)
 	Communication:AddTypeCallbacks({
 		["RemoteData"] = function(Id: string, RemoteData)

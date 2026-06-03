@@ -23,7 +23,10 @@ local function cloneRef(value)
 	end
 
 	if cloneref then
-		return cloneref(value)
+		local success, result = pcall(cloneref, value)
+		if success and result then
+			return result
+		end
 	end
 
 	return value

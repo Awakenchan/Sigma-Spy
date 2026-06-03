@@ -92,12 +92,30 @@ end
 function Module:GetDebugId(Object: Instance): string
     local Invoke = self.DebugIdInvoke
     local Remote = self.DebugIdRemote
-	return Invoke(Remote, Object)
+    local success, id = pcall(Invoke, Remote, Object)
+    if success and id then
+        return id
+    end
+
+    local fallbackSuccess, fallbackId = pcall(function()
+        return Object:GetDebugId()
+    end)
+    if fallbackSuccess and fallbackId then
+        return fallbackId
+    end
+
+	return tostring(Object)
 end
 
 function Module:GetHiddenParent(): Instance
     --// Use gethui if it exists
-    if gethui then return gethui() end
+    if gethui then
+        local success, parent = pcall(gethui)
+        if success and parent then
+            return parent
+        end
+    end
+
     return CoreGui
 end
 
@@ -128,6 +146,7 @@ function Module:GetCommChannel(ChannelId: number): BindableEvent?
 
     local Parent = self:GetHiddenParent()
     local Channel = Parent:FindFirstChild(ChannelId)
+    if not Channel then return end
 
     --// Wrap the channel (Prevents thread permission errors)
     local Wrapped = self:NewCommWrap(Channel)

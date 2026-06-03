@@ -126,7 +126,25 @@ function Ui:CheckScale()
 end
 
 function Ui:SetClipboard(Content: string)
-	SetClipboard(Content)
+	if not SetClipboard then return false end
+
+	local Success = pcall(SetClipboard, Content)
+	return Success
+end
+
+function Ui:WriteFile(FilePath: string, Content: string): boolean
+	if not writefile then
+		self:ShowModal({"writefile is not available on this executor"})
+		return false
+	end
+
+	local Success, Error = pcall(writefile, FilePath, Content)
+	if not Success then
+		self:ShowModal({"Error saving file!\n", Error})
+		return false
+	end
+
+	return true
 end
 
 function Ui:TurnSeasonal(Text: string): string
@@ -441,7 +459,7 @@ function Ui:CreateWindowContent(Window)
         Scroll = true,
         UiPadding = 5,
         AutomaticSize = Enum.AutomaticSize.None,
-        FlexMode = Enum.UIFlexMode.None,
+        FlexMode = Enum.UIFlexMode and Enum.UIFlexMode.None or nil,
         Size = UDim2.new(0, 130, 1, 0)
     })
 
@@ -480,7 +498,7 @@ function Ui:ConsoleTab(InfoSelector)
 	ButtonsRow:Button({
 		Text = "Copy",
 		Callback = function()
-			toclipboard(Console:GetValue())
+			self:SetClipboard(Console:GetValue())
 		end
 	})
 	ButtonsRow:Button({
@@ -738,7 +756,8 @@ function Ui:EditFile(FilePath: string, InFolder: boolean, OnSaveFunc: ((table, s
 	end
 
 	--// Get file content
-	local Content = readfile(FilePath)
+	local Success, Content = readfile and pcall(readfile, FilePath)
+	Content = Success and Content or ""
 	Content = Content:gsub("\r\n", "\n")
 	
 	local Buttons = {
@@ -753,9 +772,9 @@ function Ui:EditFile(FilePath: string, InFolder: boolean, OnSaveFunc: ((table, s
 					self:ShowModal({"Error saving file!\n", Error})
 					return
 				end
-				
+
 				--// Save contents
-				writefile(FilePath, Script)
+				if not self:WriteFile(FilePath, Script) then return end
 
 				--// Invoke on save function
 				if OnSaveFunc then
@@ -974,7 +993,7 @@ function Ui:SetFocusedRemote(Data)
 	end
 	function Data:SaveScript()
 		local FilePath = Generation:TimeStampFile(self.Task)
-		writefile(FilePath, CodeEditor:GetText())
+		if not Ui:WriteFile(FilePath, CodeEditor:GetText()) then return end
 
 		Ui:ShowModal({"Saved script to", FilePath})
 	end
@@ -983,7 +1002,12 @@ function Ui:SetFocusedRemote(Data)
 		if not ScriptCheck(Script, true) then return end
 
 		--// getscriptbytecode
-    	local Success, Bytecode = pcall(getscriptbytecode, Script)
+		if not getscriptbytecode then
+			Ui:ShowModal({"getscriptbytecode is not available on this executor"})
+			return
+		end
+
+		local Success, Bytecode = pcall(getscriptbytecode, Script)
 		if not Success then
 			Ui:ShowModal({"Failed to get Scripte bytecode (-9999999 AURA)"})
 			return
@@ -992,7 +1016,7 @@ function Ui:SetFocusedRemote(Data)
 		--// Save file
 		local PathBase = `{Script} %s.txt`
 		local FilePath = Generation:TimeStampFile(PathBase)
-		writefile(FilePath, Bytecode)
+		if not Ui:WriteFile(FilePath, Bytecode) then return end
 
 		Ui:ShowModal({"Saved bytecode to", FilePath})
 	end

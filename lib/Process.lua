@@ -84,10 +84,35 @@ local function cloneRef(value)
 	end
 
 	if cloneref then
-		return cloneref(value)
+		local success, result = pcall(cloneref, value)
+		if success and result then
+			return result
+		end
 	end
 
 	return value
+end
+
+local function getRequest()
+	local httpLibrary = http
+	return request or http_request or (httpLibrary and httpLibrary.request)
+end
+
+local function getExecutorName()
+	if not identifyexecutor then
+		return "unknown"
+	end
+
+	local success, name = pcall(identifyexecutor)
+	if success and name then
+		return name
+	end
+
+	return "unknown"
+end
+
+local makeCClosure = newcclosure or function(func)
+    return func
 end
 
 --// Modules
@@ -135,13 +160,17 @@ function Process:Init(Data)
     Communication = Modules.Communication
     ReturnSpoofs = Modules.ReturnSpoofs
     local method = GetHook()
+    if not method then return end
 
-    local OldInstancenew; OldInstancenew = method(Instance.new, function(...)
-        local Inst = OldInstancenew(...)
-        if typeof(Inst) == "Instance" and Process.RemoteClassData[Inst.ClassName] then
-            InstanceCreatedRemotes[Inst :: Event] = true
-        end
-        return Inst
+    local oldInstanceNew
+    pcall(function()
+        oldInstanceNew = method(Instance.new, function(...)
+            local inst = oldInstanceNew(...)
+            if typeof(inst) == "Instance" and Process.RemoteClassData[inst.ClassName] then
+                InstanceCreatedRemotes[inst :: Event] = true
+            end
+            return inst
+        end)
     end)
 end
 
@@ -162,7 +191,7 @@ function Process:GetConfigOverwrites(Name: string)
 end
 
 function Process:CheckConfig(Config: table)
-    local Name = identifyexecutor():lower()
+    local Name = getExecutorName():lower()
 
     --// Force configuration overwrites for specific executors
     local Overwrites = self:GetConfigOverwrites(Name)
@@ -247,7 +276,7 @@ function Process:CheckExecutor(): boolean
         "jjsploit"
     }
 
-    local Name = identifyexecutor():lower()
+    local Name = getExecutorName():lower()
     local IsBlacklisted = table.find(Blacklisted, Name)
 
     --// Some executors have broken functionality
@@ -361,23 +390,28 @@ function Process:FindCallingLClosure(Offset: number)
     local Getfenv = Hook:GetOriginalFunc(getfenv)
     Offset += 1
 
-    while true do
-        Offset += 1
+    for Level = Offset + 1, Offset + 80 do
 
         --// Check if the stack level is valid
-        local IsValid = debug.info(Offset, "l") ~= -1
+        local IsValid = debug.info(Level, "l") ~= -1
         if not IsValid then continue end
 
         --// Check if the function is valid
-        local Function = debug.info(Offset, "f")
+        local Function = debug.info(Level, "f")
         if not Function then return end
         if Getfenv(Function) == SigmaENV then continue end
 
         return Function
     end
+
+    return
 end
 
 function Process:Decompile(Script: LocalScript | ModuleScript): string
+    if not getscriptbytecode then
+        return "-- getscriptbytecode is not available on this executor"
+    end
+
     local ok, bytecode = pcall(getscriptbytecode, Script)
     if not ok then
         return "-- failed to read script bytecode\n--[[\n" .. tostring(bytecode) .. "\n--]]"
@@ -410,7 +444,12 @@ function Process:Decompile(Script: LocalScript | ModuleScript): string
         end
     end
 
-    local res = request({
+    local requestFunc = getRequest()
+    if not requestFunc then
+        return "-- request is not available on this executor"
+    end
+
+    local success, res = pcall(requestFunc, {
         Url = "https://api.lua.expert/decompile",
         Method = "POST",
         Headers = {
@@ -423,11 +462,13 @@ function Process:Decompile(Script: LocalScript | ModuleScript): string
 
     last = os.clock()
 
-    if not res or res.StatusCode ~= 200 then
-        return "-- api request error\n--[[\n" .. (res and res.Body or "no response") .. "\n--]]"
+    local statusCode = res and (res.StatusCode or res.status)
+    local body = res and (res.Body or res.body)
+    if not success or not res or statusCode ~= 200 then
+        return "-- api request error\n--[[\n" .. (body or "no response") .. "\n--]]"
     end
 
-    return res.Body
+    return body
 end
 function Process:GetScriptFromFunc(Func: (...any) -> ...any)
     if not Func then return end
@@ -474,6 +515,8 @@ function Process:ConnectionIsValid(Connection: table): boolean
 end
 
 function Process:FilterConnections(Signal: RBXScriptSignal): table
+    if not getconnections then return {} end
+
     local Processed = {}
 
     --// Filter each connection
@@ -507,7 +550,10 @@ function Process:GetRemoteData(Id: string)
 end
 
 function Process:CallDiscordRPC(Body: table)
-    request({
+    local requestFunc = getRequest()
+    if not requestFunc then return end
+
+    pcall(requestFunc, {
         Url = "http://127.0.0.1:6463/rpc?v=1",
         Method = "POST",
         Headers = {
@@ -528,7 +574,7 @@ function Process:PromptDiscordInvite(InviteCode: string)
     })
 end
 
-local ProcessCallback = newcclosure(function(Data: RemoteData, Remote, ...): table?
+local ProcessCallback = makeCClosure(function(Data: RemoteData, Remote, ...): table?
     --// Unpack Data
     local OriginalFunc = Data.OriginalFunc
     local Id = Data.Id

@@ -20,7 +20,10 @@ local function cloneRef(value)
 	end
 
 	if cloneref then
-		return cloneref(value)
+		local success, result = pcall(cloneref, value)
+		if success and result then
+			return result
+		end
 	end
 
 	return value
@@ -41,9 +44,14 @@ if not req then
 end
 
 local function ensureFolder(path)
-	if not isfolder(path) then
-		makefolder(path)
+	if not isfolder or not makefolder then
+		return
 	end
+
+	local success, exists = pcall(isfolder, path)
+	if success and exists then return end
+
+	pcall(makefolder, path)
 end
 
 local function fetchDir(repoPath)
@@ -67,16 +75,22 @@ local function fetchDir(repoPath)
 end
 
 local function downloadFile(entry, localPath)
-	if isfile(localPath) then
+	if not writefile then
+		return
+	end
+
+	local success, exists = isfile and pcall(isfile, localPath)
+	if success and exists then
 		return -- already downloaded
 	end
+
 	local res = req({
 		Url = entry.download_url,
 		Method = "GET",
 		Headers = { ["User-Agent"] = "Roblox" },
 	})
 	if res and (res.StatusCode == 200 or res.status == 200) then
-		writefile(localPath, res.Body or res.body)
+		pcall(writefile, localPath, res.Body or res.body)
 	else
 		warn("[Assets] Failed to download:", entry.path)
 	end
@@ -103,7 +117,9 @@ if req then
 		warn("[Assets] Download failed:", err)
 	end
 end
-getgenv().assetpath = AssetsConfig.LocalPath
+if getgenv then
+	getgenv().assetpath = AssetsConfig.LocalPath
+end
 local a a={cache={},load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}
 end return a.cache[b].c end}do function a.a()local b,c,d='8.0',cloneRef,{Theme={Syntax={Text=Color3.fromRGB(204,204,204),
 Background=Color3.fromRGB(20,20,20),Selection=Color3.fromRGB(255,255,255),
@@ -556,8 +572,8 @@ function()return ag end},af:CreateInstance'ScreenGui'for ak,b in next,ai do
 local c,d=pcall(b)if not c or not d then continue end local e=pcall(function()aj
 .Parent=d end)if not e then continue end if ah then af:Warn(`Step: {ak} was chosen as the parent!: {
 d}`)end return d end af:Warn'The ReGui container does not have a parent defined'
-return nil end function aa:GetChildOfClass(ag,ah)local ai=ag:
-FindFirstChildOfClass(ah)if not ai then ai=af:CreateInstance(ah,ag)end return ai
+ return nil end function aa:GetChildOfClass(ag,ah)local ai=ag:
+FindFirstChildOfClass(ah)if not ai then local aj,ak=pcall(function()return af:CreateInstance(ah,ag)end)if aj then ai=ak end end return ai
 end 
 function aa:CheckAssetUrl(ag)
     if tonumber(ag) then 
@@ -990,20 +1006,19 @@ ah.Icon ak=aa:CheckAssetUrl(ak)local b=ad.WindowClass ab:DynamicImageTag(ag,ak,b
 true aa:CheckConfig(ag,{BorderTransparency=ad:GetThemeKey
 'BorderTransparencyActive',BorderColor=ad:GetThemeKey'Border',BorderThickness=1,
 BorderStrokeMode=Enum.ApplyStrokeMode.Border})local aj=aa:GetChildOfClass(ae,
-'UIStroke')aa:SetProperties(aj,{Transparency=ag.BorderTransparency,Thickness=ag.
+'UIStroke')if not aj then return end aa:SetProperties(aj,{Transparency=ag.BorderTransparency,Thickness=ag.
 BorderThickness,Color=ag.BorderColor,ApplyStrokeMode=ag.BorderStrokeMode,Enabled
 =ah})end},{Properties={'Ratio'},Callback=function(ad,ae,af)local ag=ad.Class aa:
 CheckConfig(ag,{Ratio=1.3333333333333333,RatioAxis=Enum.DominantAxis.Height,
 RatioAspectType=Enum.AspectType.ScaleWithParentSize})local ah,aj,ak,b=ag.Ratio,
 ag.RatioAxis,ag.RatioAspectType,aa:GetChildOfClass(ae,'UIAspectRatioConstraint')
-aa:SetProperties(b,{DominantAxis=aj,AspectType=ak,AspectRatio=ah})end},{
-Properties={'FlexMode'},Callback=function(ad,ae,af)local ag=aa:GetChildOfClass(
-ae,'UIFlexItem')ag.FlexMode=af end},{Properties={'CornerRadius'},Callback=
-function(ad,ae,af)local ag=aa:GetChildOfClass(ae,'UICorner')ag.CornerRadius=af
+if not b then return end aa:SetProperties(b,{DominantAxis=aj,AspectType=ak,AspectRatio=ah})end},{
+ Properties={'FlexMode'},Callback=function(ad,ae,af)local ag=aa:GetChildOfClass(
+ae,'UIFlexItem')if not ag then return end ag.FlexMode=af end},{Properties={'CornerRadius'},Callback=
+function(ad,ae,af)local ag=aa:GetChildOfClass(ae,'UICorner')if not ag then return end ag.CornerRadius=af
 end},{Properties={'Fill'},Callback=function(ad,ae,af)if af~=true then return end
-local ag=ad.Class aa:CheckConfig(ag,{Size=UDim2.fromScale(1,1),UIFlexMode=Enum.
-UIFlexMode.Fill,AutomaticSize=Enum.AutomaticSize.None})local ah=aa:
-GetChildOfClass(ae,'UIFlexItem')ah.FlexMode=ag.UIFlexMode ae.Size=ag.Size ae.
+local ag=ad.Class local ah=Enum.UIFlexMode aa:CheckConfig(ag,{Size=UDim2.fromScale(1,1),UIFlexMode=ah and ah.Fill or nil,AutomaticSize=Enum.AutomaticSize.None})local aj=aa:
+GetChildOfClass(ae,'UIFlexItem')if aj and ag.UIFlexMode then aj.FlexMode=ag.UIFlexMode end ae.Size=ag.Size ae.
 AutomaticSize=ag.AutomaticSize end},{Properties={'Label'},Callback=function(ad,
 ae,af)local ag,ah=ad.Class,ae:FindFirstChild'Label'if not ah then return end ah.
 Text=SafeString(af)function ag:SetLabel(aj)ah.Text=aj return self end end},{
@@ -1014,7 +1029,7 @@ Enabled=af end},{Properties={'UiPadding','PaddingBottom','PaddingTop',
 =='number'then af=UDim.new(0,af)end local ag=ad.Class local ah=ag.UiPadding if
 ah then aa:CheckConfig(ag,{PaddingBottom=af,PaddingLeft=af,PaddingRight=af,
 PaddingTop=af})end local aj=aa:GetChildOfClass(ae,'UIPadding')aa:SetProperties(
-aj,{PaddingBottom=ag.PaddingBottom,PaddingLeft=ag.PaddingLeft,PaddingRight=ag.
+aj or {},{PaddingBottom=ag.PaddingBottom,PaddingLeft=ag.PaddingLeft,PaddingRight=ag.
 PaddingRight,PaddingTop=ag.PaddingTop})end},{Properties={'Callback'},Callback=
 function(ad,ae)local af=ad.Class function af:SetCallback(ag)self.Callback=ag
 return self end function af:FireCallback(ag)self.Callback(ae)return self end end
@@ -1546,10 +1561,10 @@ TagElements{[v]='Frame'}return x,t end})aa:DefineElement('InputInt',{Base={Value
 local o,p,q,r,s,t=n.Value,n.Placeholder,n.Label,n.Disabled,n.NoButtons,aa:
 InsertPrefab('InputBox',n)local u,v=aa:MergeMetatables(n,t),t.Frame local x=v.
 Input x.PlaceholderText=p local y,z,A,B=m:Button{Text='-',Parent=v,LayoutOrder=2
-,Ratio=1,AutomaticSize=Enum.AutomaticSize.None,FlexMode=Enum.UIFlexMode.None,
+,Ratio=1,AutomaticSize=Enum.AutomaticSize.None,FlexMode=Enum.UIFlexMode and Enum.UIFlexMode.None or nil,
 Size=UDim2.fromScale(1,1),Visible=not s,Callback=function()n:Decrease()end},m:
 Button{Text='+',Parent=v,LayoutOrder=3,Ratio=1,AutomaticSize=Enum.AutomaticSize.
-None,FlexMode=Enum.UIFlexMode.None,Size=UDim2.fromScale(1,1),Visible=not s,
+None,FlexMode=Enum.UIFlexMode and Enum.UIFlexMode.None or nil,Size=UDim2.fromScale(1,1),Visible=not s,
 Callback=function()n:Increase()end},m:Label{Parent=t,Text=q,AutomaticSize=Enum.
 AutomaticSize.X,Size=UDim2.fromOffset(0,19),Position=UDim2.new(1,4),LayoutOrder=
 4},function(...)local y=n.Callback y(u,...)end function n:Increase()local C,D=

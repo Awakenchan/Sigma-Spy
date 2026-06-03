@@ -103,7 +103,9 @@ function Generation:WriteDump(Content: string): string
 	local FilePath = self:TimeStampFile(DumpBaseName)
 
 	--// Write to file
-	writefile(FilePath, Content)
+	if not writefile then return FilePath end
+
+	pcall(writefile, FilePath, Content)
 
 	return FilePath
 end
@@ -358,6 +360,8 @@ function Generation:RemoteScript(Module, Data: RemoteData, ScriptType: string): 
 end
 
 function Generation:ConnectionsTable(Signal: RBXScriptSignal): table
+	if not getconnections then return {} end
+
 	local Connections = getconnections(Signal)
 	local DataArray = {}
 

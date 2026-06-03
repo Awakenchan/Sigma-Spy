@@ -17,6 +17,11 @@ local Files = {
 --// Services
 local HttpService: HttpService
 
+local function getRequest()
+	local httpLibrary = http
+	return request or http_request or (httpLibrary and httpLibrary.request)
+end
+
 function Files:Init(Data)
 	local FolderStructure = self.FolderStructure
     local Services = Data.Services
@@ -36,23 +41,34 @@ end
 function Files:UrlFetch(Url: string): string
 	--// Request data
     local Final = {
-        Url = Url:gsub(" ", "%%20"), 
+        Url = Url:gsub(" ", "%%20"),
         Method = 'GET'
     }
 
 	 --// Send HTTP request
-    local Success, Responce = pcall(request, Final)
+    local Request = getRequest()
+    local Success, Responce
+    if Request then
+        Success, Responce = pcall(Request, Final)
+    end
 
     --// Error check
-    if not Success then 
+    if not Success or not Responce then
+        local HttpSuccess, Body = pcall(function()
+            return game:HttpGet(Final.Url)
+        end)
+
+        if HttpSuccess then
+            return Body
+        end
+
         warn("[!] HTTP request error! Check console (F9)")
         warn("> Url:", Url)
-        error(Responce)
         return ""
     end
 
-    local Body = Responce.Body
-    local StatusCode = Responce.StatusCode
+    local Body = Responce.Body or Responce.body or ""
+    local StatusCode = Responce.StatusCode or Responce.status
 
 	--// Status code check
     if StatusCode == 404 then
@@ -71,10 +87,12 @@ end
 
 function Files:LoadCustomasset(Path: string): string?
 	if not getcustomasset then return end
+	if not readfile then return end
 	if not Path then return end
 
 	--// Check content
-	local Content = readfile(Path)
+	local ReadSuccess, Content = pcall(readfile, Path)
+	if not ReadSuccess then return end
 	if #Content <= 0 then return end
 
 	--// Load custom AssetId
@@ -95,7 +113,8 @@ function Files:GetFile(Path: string, CustomAsset: boolean?): string?
 
 	--// Check if the files should be fetched from the workspace instead
 	if UseWorkspace then
-		Content = readfile(LocalPath)
+		local Success, Result = readfile and pcall(readfile, LocalPath)
+		Content = Success and Result or ""
 	else
 		--// Download with a HTTP request
 		Content = self:UrlFetch(`{RepoUrl}/{Path}`)
@@ -104,9 +123,10 @@ function Files:GetFile(Path: string, CustomAsset: boolean?): string?
 	--// Custom asset
 	if CustomAsset then
 		--// Check if the file should be written to
-		self:FileCheck(LocalPath, function()
+		local Written = self:FileCheck(LocalPath, function()
 			return Content
 		end)
+		if not Written then return end
 
 		return self:LoadCustomasset(LocalPath)
 	end
@@ -119,16 +139,25 @@ function Files:GetTemplate(Name: string): string
 end
 
 function Files:FileCheck(Path: string, Callback)
-	if isfile(Path) then return end
+	if not isfile or not writefile then return false end
+
+	local CheckSuccess, Exists = pcall(isfile, Path)
+	if CheckSuccess and Exists then return true end
 
 	--// Create and write the template to the missing file
 	local Template = Callback()
-	writefile(Path, Template)
+	local WriteSuccess = pcall(writefile, Path, Template)
+	return WriteSuccess
 end
 
 function Files:FolderCheck(Path: string)
-	if isfolder(Path) then return end
-	makefolder(Path)
+	if not isfolder or not makefolder then return false end
+
+	local CheckSuccess, Exists = pcall(isfolder, Path)
+	if CheckSuccess and Exists then return true end
+
+	local MakeSuccess = pcall(makefolder, Path)
+	return MakeSuccess
 end
 
 function Files:CheckPath(Parent: string, Child: string)
@@ -152,7 +181,7 @@ function Files:CheckFolders(Structure: table, Path: string?)
 end
 
 function Files:TemplateCheck(Path: string, TemplateName: string)
-	self:FileCheck(Path, function()
+	return self:FileCheck(Path, function()
 		return self:GetTemplate(TemplateName)
 	end)
 end
@@ -166,12 +195,14 @@ function Files:GetModule(Name: string, TemplateName: string): string
 
 	--// The file will be declared local if the template argument is provided
 	if TemplateName then
-		self:TemplateCheck(Path, TemplateName)
+		local HasTemplateFile = self:TemplateCheck(Path, TemplateName)
 
 		--// Check if it successfuly loads
-		local Content = readfile(Path)
-		local Success = loadstring(Content)
-		if Success then return Content end
+		if HasTemplateFile and readfile then
+			local ReadSuccess, Content = pcall(readfile, Path)
+			local Success = ReadSuccess and loadstring(Content)
+			if Success then return Content end
+		end
 
 		return self:GetTemplate(TemplateName)
 	end
@@ -219,6 +250,7 @@ end
 
 function Files:CreateFont(Name: string, AssetId: string): string?
 	if not AssetId then return end
+	if not writefile then return end
 
 	--// Custom font Json
 	local FileName = `assets/{Name}.json`
@@ -237,7 +269,8 @@ function Files:CreateFont(Name: string, AssetId: string): string?
 
 	--// Write Json
 	local Json = HttpService:JSONEncode(Data)
-	writefile(JsonPath, Json)
+	local Success = pcall(writefile, JsonPath, Json)
+	if not Success then return end
 
 	return JsonPath
 end
