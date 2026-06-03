@@ -105,7 +105,7 @@ function Ui:Init(Data)
 	Files = Modules.Files
 
 	--// ReGui
-    ReGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/Awakenchan/Sigma-Spy/refs/heads/main/lib/Regui.luau'))()
+    ReGui = loadstring(Files:GetFile("lib/Regui.luau"), "ReGui")()
 	self:LoadFont()
 	self:LoadReGui()
 	self:CheckScale()
@@ -134,7 +134,7 @@ function Ui:TurnSeasonal(Text: string): string
     local Month = os.date("%B")
     local Base = SeasonLabels[Month]
 
-    return Base:format(Text)
+    return (Base or "%s"):format(Text)
 end
 
 function Ui:LoadFont()
@@ -225,12 +225,16 @@ type AskConfig = {
 	Options: table
 }
 function Ui:AskUser(Config: AskConfig): string
-	local Window = self.Window
 	local Answered = false
 
 	--// Create modal
-	local ModalWindow = Window:PopupModal({
-		Title = Config.Title
+	local ModalWindow = self:CreateWindow({
+		Title = Config.Title,
+		NoClose = true,
+		NoCollapse = true,
+		NoResize = true,
+		NoScroll = true,
+		Size = UDim2.fromOffset(420, 220),
 	})
 	ModalWindow:Label({
 		Text = table.concat(Config.Content, "\n"),
@@ -247,7 +251,7 @@ function Ui:AskUser(Config: AskConfig): string
 			Text = Answer,
 			Callback = function()
 				Answered = Answer
-				ModalWindow:ClosePopup()
+				ModalWindow:Close()
 			end,
 		})
 	end
@@ -273,12 +277,16 @@ function Ui:CreateMainWindow()
 end
 
 function Ui:ShowModal(Lines: table)
-	local Window = self.Window
 	local Message = table.concat(Lines, "\n")
 
 	--// Modal Window
-	local ModalWindow = Window:PopupModal({
-		Title = "Sigma Spy"
+	local ModalWindow = self:CreateWindow({
+		Title = "Sigma Spy",
+		NoClose = true,
+		NoCollapse = true,
+		NoResize = true,
+		NoScroll = true,
+		Size = UDim2.fromOffset(420, 220),
 	})
 	ModalWindow:Label({
 		Text = Message,
@@ -288,7 +296,7 @@ function Ui:ShowModal(Lines: table)
 	ModalWindow:Button({
 		Text = "Okay",
 		Callback = function()
-			ModalWindow:ClosePopup()
+			ModalWindow:Close()
 		end,
 	})
 end

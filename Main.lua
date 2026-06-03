@@ -17,11 +17,23 @@ if typeof(Overwrites) == "table" then
 	end
 end
 
+local function cloneRef(value)
+	if typeof(value) ~= "Instance" then
+		return value
+	end
+
+	if cloneref then
+		return cloneref(value)
+	end
+
+	return value
+end
+
 --// Service handler
 local Services = setmetatable({}, {
 	__index = function(self, Name: string): Instance
 		local Service = game:GetService(Name)
-		return cloneref(Service)
+		return cloneRef(Service)
 	end,
 })
 

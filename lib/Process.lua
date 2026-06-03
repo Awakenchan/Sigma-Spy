@@ -78,6 +78,18 @@ local Process = {
     }
 }
 
+local function cloneRef(value)
+	if typeof(value) ~= "Instance" then
+		return value
+	end
+
+	if cloneref then
+		return cloneref(value)
+	end
+
+	return value
+end
+
 --// Modules
 local Hook
 local Communication
@@ -182,7 +194,7 @@ function Process:CheckValue(Value, Ignore: table?, Cache: table?)
     if Type == "table" then
         Value = self:DeepCloneTable(Value, Ignore, Cache)
     elseif Type == "Instance" then
-        Value = cloneref(Value)
+        Value = cloneRef(Value)
     end
     
     return Value
@@ -540,6 +552,8 @@ local ProcessCallback = newcclosure(function(Data: RemoteData, Remote, ...): tab
 end)
 
 function Process:ProcessRemote(Data: RemoteData, Remote, ...): table?
+    if typeof(Remote) ~= "Instance" then return end
+
     --// Unpack Data
 	local Method = Data.Method
     local TransferType = Data.TransferType
@@ -570,7 +584,7 @@ function Process:ProcessRemote(Data: RemoteData, Remote, ...): table?
 
     --// Add to queue
     self:Merge(Data, {
-        Remote = cloneref(Remote),
+        Remote = cloneRef(Remote),
 		CallingScript = getcallingscript(),
         CallingFunction = CallingFunction,
         SourceScript = SourceScript,

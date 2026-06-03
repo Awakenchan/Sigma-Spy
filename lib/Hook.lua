@@ -25,6 +25,18 @@ local Communication
 
 local ExeENV = getfenv(1)
 
+local function cloneRef(value)
+	if typeof(value) ~= "Instance" then
+		return value
+	end
+
+	if cloneref then
+		return cloneref(value)
+	end
+
+	return value
+end
+
 local function GetHook()
 	return (oth and oth.hook) or hookfunction
 end
@@ -345,7 +357,7 @@ function Hook:BeginService(Libraries, ExtraData, ChannelId, ...)
 		Services = setmetatable({}, {
 			__index = function(self, Name: string): Instance
 				local Service = game:GetService(Name)
-				return cloneref(Service)
+				return cloneRef(Service)
 			end,
 		})
 	}

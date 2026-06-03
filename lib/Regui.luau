@@ -13,6 +13,18 @@ local SafeString = function(Object)
 
     return String
 end
+
+local function cloneRef(value)
+	if typeof(value) ~= "Instance" then
+		return value
+	end
+
+	if cloneref then
+		return cloneref(value)
+	end
+
+	return value
+end
 --// Asset downloading
 local AssetsConfig = {
 	RepoOwner = "Awakenchan",
@@ -22,11 +34,10 @@ local AssetsConfig = {
 	LocalPath = "Sigma Spy/assets"  
 }
 
-local HttpService = cloneref(game:GetService("HttpService"))
+local HttpService = cloneRef(game:GetService("HttpService"))
 local req = request or http_request
 if not req then
 	warn("[Assets] Executor does not support HTTP requests, skipping asset download")
-	return
 end
 
 local function ensureFolder(path)
@@ -84,16 +95,17 @@ local function walk(repoPath, localBase)
 	end
 end
 
-local ok, err = pcall(function()
-	walk(AssetsConfig.AssetsDirName, AssetsConfig.LocalPath)
-end)
-if not ok then
-	warn("[Assets] Download failed:", err)
+if req then
+	local ok, err = pcall(function()
+		walk(AssetsConfig.AssetsDirName, AssetsConfig.LocalPath)
+	end)
+	if not ok then
+		warn("[Assets] Download failed:", err)
+	end
 end
 getgenv().assetpath = AssetsConfig.LocalPath
 local a a={cache={},load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}
-end return a.cache[b].c end}do function a.a()local b,c,d='8.0',cloneref or
-function(b)return b end,{Theme={Syntax={Text=Color3.fromRGB(204,204,204),
+end return a.cache[b].c end}do function a.a()local b,c,d='8.0',cloneRef,{Theme={Syntax={Text=Color3.fromRGB(204,204,204),
 Background=Color3.fromRGB(20,20,20),Selection=Color3.fromRGB(255,255,255),
 SelectionBack=Color3.fromRGB(102,161,255),Operator=Color3.fromRGB(204,204,204),
 Number=Color3.fromRGB(255,198,0),String=Color3.fromRGB(172,240,148),Comment=
@@ -103,11 +115,11 @@ Color3.fromRGB(97,161,241),Nil=Color3.fromRGB(255,198,0),Bool=Color3.fromRGB(255
 ,198,0),Function=Color3.fromRGB(248,109,124),Local=Color3.fromRGB(248,109,124),
 Self=Color3.fromRGB(248,109,124),FunctionName=Color3.fromRGB(253,251,172),
 Bracket=Color3.fromRGB(204,204,204)}}}local e,f=setmetatable({},{__index=
-function(e,f)local g= cloneref(game:GetService(f)) return c(g)end}),{StartAndEnd={Enum.
+function(e,f)local g=game:GetService(f) return c(g)end}),{StartAndEnd={Enum.
 UserInputType.MouseButton1,Enum.UserInputType.Touch},Movement={Enum.
 UserInputType.MouseMovement,Enum.UserInputType.Touch}}local g,h,i,j=e.Players,e.
 UserInputService,e.RunService,e.TweenService local k=c(g.LocalPlayer)local l,m,n
-,o=c(cloneref(k:GetMouse())),function(l,m)for n,o in next,m do l[n]=o end return l end,
+,o=c(k:GetMouse()),function(l,m)for n,o in next,m do l[n]=o end return l end,
 function(l,m)local n=l.UserInputType return table.find(f[m],n)end,function(...)
 return c(Instance.new(...))end local p,q,r=function(p,q)local r=o(p)for s,t in
 next,q do r[s]=t end return r end,{},o'Frame'q.CheckMouseInGui=function(s)if s==
@@ -527,8 +539,8 @@ Frame.Lines)ac.Gui.Parent=ag.Frame ad.Gui.Parent=ag.Frame ag:UpdateView()ag:
 SetText(af.Text)ag.Frame:GetPropertyChangedSignal'AbsoluteSize':Connect(function
 ()ag:UpdateView()ag:Refresh()end)return ag end return{new=ab}end)()return q end
 function a.b()local aa,ab,ac={Services={},OnInitConnections={}},get_hidden_gui
-or gethui,cloneref or function(...)return...end local ad=aa.Services
-setmetatable(ad,{__index=function(ae,af)local ag=cloneref(game:GetService(af))return ac(ag
+or gethui,cloneRef local ad=aa.Services
+setmetatable(ad,{__index=function(ae,af)local ag=game:GetService(af)return ac(ag
 )end})local ae,af=(ad.CoreGui)function aa:AddOnInit(ag)local ah=self.
 OnInitConnections table.insert(ah,ag)end function aa:NewReference(ag)return ac(
 ag)end function aa:CallOnInitConnections(ag,...)local ah=self.OnInitConnections
@@ -601,7 +613,7 @@ MouseButton1,Enum.KeyCode.Q}}local ae=aa:TabsWindow{Title='Tabs window!',Visible
 }end local af=aa.Elements:Label{Parent=aa.Container.Windows,Visible=false,
 UiPadding=UDim.new(0,8),CornerRadius=UDim.new(0,2),Position=UDim2.fromOffset(10,
 10),Size=UDim2.fromOffset(250,50),Border=true,BorderThickness=1,BorderColor=aa.
-Accent.Gray,BackgroundTransparency=0.4,BackgroundColor3=aa.Accent.Black}local rs = cloneref(game:GetService('RunService')); rs.RenderStepped:Connect(function(ag)local ah,ai,aj=math.
+Accent.Gray,BackgroundTransparency=0.4,BackgroundColor3=aa.Accent.Black}local rs = cloneRef(game:GetService('RunService')); rs.RenderStepped:Connect(function(ag)local ah,ai,aj=math.
 round(1/ag),DateTime.now():FormatLocalTime('dddd h:mm:ss A','en-us'),`ReGui {aa:
 GetVersion()}\n`aj..=`FPS: {ah}\n`aj..=`The time is {ai}`af.Text=aj end)local ag
 =aa:Window{Title='Dear ReGui Demo',Size=UDim2.new(0,400,0,300),NoScroll=true}:
@@ -672,7 +684,7 @@ Enum.DominantAxis.Width,Size=UDim2.fromScale(1,1)}i:Play()local k=h:Row{Expanded
 =true}k:Button{Text='Pause',Callback=function()i:Pause()end}k:Button{Text='Play'
 ,Callback=function()i:Play()end}if not i.IsLoaded then i.Loaded:Wait()end local
 l=k:SliderInt{Format='%.f',Value=0,Minimum=0,Maximum=i.TimeLength,Callback=
-function(l,m)i.TimePosition=m end}local rs = cloneref(game:GetService('RunService')); rs.RenderStepped:
+function(l,m)i.TimePosition=m end}local rs = cloneRef(game:GetService('RunService')); rs.RenderStepped:
 Connect(function(m)l:SetValue(i.TimePosition)end)end,['Tree Nodes']=function(h)
 for i=1,5 do local k=h:TreeNode{Title=`Child {i}`,Collapsed=i~=1}local l=k:Row()
 l:Label{Text='Blah blah'}l:SmallButton{Text='Button'}end h:TreeNode{Title=`With icon & NoArrow`
@@ -747,7 +759,7 @@ return{'aaa','bbb','ccc'}end}end,Indent=function(h)h:Label{Text=
 Viewport=function(h)local i=aa:
 InsertPrefab'R15 Rig'local m=h:Viewport{Size=UDim2.new(1,0,0,200),Clone=true,
 Model=i}local n=m.Model n:PivotTo(CFrame.new(0,-2.5,-5))
-local rs = cloneref(game:GetService('RunService')); 
+local rs = cloneRef(game:GetService('RunService'));
 rs.RenderStepped:Connect(function(p)
 local q=CFrame.Angles(0,math.rad(
 30*p),0)local r=n:GetPivot()*q n:PivotTo(r)end)end,['List layout']=function(h)
