@@ -34,6 +34,7 @@ return {
     BlackListedServices = {
         "RobloxReplicatedStorage"
     },
+    NoReceiveHooking = true,
     ThemeConfig = {
         BaseTheme = "ImGui",
         TextSize = 12

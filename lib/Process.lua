@@ -132,18 +132,12 @@ local WrappedChannel = false
 local SigmaENV = getfenv(1)
 
 type Event = RemoteEvent | RemoteFunction | UnreliableRemoteEvent | BindableEvent | BindableFunction
-local InstanceCreatedRemotes: typeof(setmetatable({} :: {[Event]: true}, {__mode = "k"})) = setmetatable({}, {
-    __mode = "k"
-})
 
 function Process:Merge(Base: table, New: table)
     if not New then return end
 	for Key, Value in next, New do
 		Base[Key] = Value
 	end
-end
-local function GetHook()
-	return (oth and oth.hook) or hookfunction
 end
 
 function Process:Init(Data)
@@ -159,19 +153,6 @@ function Process:Init(Data)
     Hook = Modules.Hook
     Communication = Modules.Communication
     ReturnSpoofs = Modules.ReturnSpoofs
-    local method = GetHook()
-    if not method then return end
-
-    local oldInstanceNew
-    pcall(function()
-        oldInstanceNew = method(Instance.new, function(...)
-            local inst = oldInstanceNew(...)
-            if typeof(inst) == "Instance" and Process.RemoteClassData[inst.ClassName] then
-                InstanceCreatedRemotes[inst :: Event] = true
-            end
-            return inst
-        end)
-    end)
 end
 
 --// Communication
@@ -340,7 +321,7 @@ function Process:IsProtectedRemote(Remote: Instance): boolean
 end
 
 function Process:RemoteAllowed(Remote: Event, TransferType: string, Method: string?): boolean?
-    if typeof(Remote) ~= 'Instance' or InstanceCreatedRemotes[Remote] then return end
+    if typeof(Remote) ~= 'Instance' then return end
     
     --// Check if the Remote is protected
     if self:IsProtectedRemote(Remote) then return end

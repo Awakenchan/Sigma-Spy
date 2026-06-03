@@ -445,7 +445,7 @@ function Hook:LoadReceiveHooks()
 	local NoReceiveHooking = Config.NoReceiveHooking
 	local BlackListedServices = Config.BlackListedServices
 
-	if NoReceiveHooking then return end
+	if NoReceiveHooking ~= false then return end
 
 	--// Remote added
 	game.DescendantAdded:Connect(function(Remote) -- TODO
