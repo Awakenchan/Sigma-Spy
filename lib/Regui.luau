@@ -26,8 +26,6 @@ local SafeCloneref = function(inst)
     end
     return inst
 end
-
---// Safe service getter: pcall-wrapped GetService + guarded cloneref
 local SafeService = function(name)
     local ok, svc = pcall(function()
         return game:GetService(name)
