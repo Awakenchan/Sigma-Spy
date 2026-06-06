@@ -13,8 +13,6 @@ local SafeString = function(Object)
 
     return String
 end
-
---// Safe cloneref: never passes nil, falls back to the raw instance
 local SafeCloneref = function(inst)
     if inst == nil then
         return nil
