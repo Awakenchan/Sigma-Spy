@@ -13,82 +13,115 @@ local SafeString = function(Object)
 
     return String
 end
+
+--// Safe cloneref: never passes nil, falls back to the raw instance
+local SafeCloneref = function(inst)
+    if inst == nil then
+        return nil
+    end
+    if type(cloneref) ~= "function" then
+        return inst
+    end
+    local ok, ref = pcall(cloneref, inst)
+    if ok and ref ~= nil then
+        return ref
+    end
+    return inst
+end
+
+--// Safe service getter: pcall-wrapped GetService + guarded cloneref
+local SafeService = function(name)
+    local ok, svc = pcall(function()
+        return game:GetService(name)
+    end)
+    if not ok or svc == nil then
+        return nil
+    end
+    return SafeCloneref(svc)
+end
+
 --// Asset downloading
 local AssetsConfig = {
-	RepoOwner = "Awakenchan",
-	RepoName = "GcViewerV3",
-	RepoBranch = "main",
-	AssetsDirName = "GcViwerV2@Assets", 
-	LocalPath = "Sigma Spy/assets"  
+    RepoOwner = "Awakenchan",
+    RepoName = "GcViewerV3",
+    RepoBranch = "main",
+    AssetsDirName = "GcViwerV2@Assets",
+    LocalPath = "Sigma Spy/assets"
 }
 
-local HttpService = cloneref(game:GetService("HttpService"))
+local HttpService = SafeService("HttpService")
 local req = request or http_request
 if not req then
-	warn("[Assets] Executor does not support HTTP requests, skipping asset download")
-	return
+    warn("[Assets] Executor does not support HTTP requests, skipping asset download")
+    getgenv().assetpath = AssetsConfig.LocalPath
+    return
+end
+if not HttpService then
+    warn("[Assets] HttpService unavailable on this executor, skipping asset download")
+    getgenv().assetpath = AssetsConfig.LocalPath
+    return
 end
 
 local function ensureFolder(path)
-	if not isfolder(path) then
-		makefolder(path)
-	end
+    if isfolder and not isfolder(path) then
+        pcall(makefolder, path)
+    end
 end
 
 local function fetchDir(repoPath)
-	local url = ("https://api.github.com/repos/%s/%s/contents/%s?ref=%s"):format(
-		AssetsConfig.RepoOwner,
-		AssetsConfig.RepoName,
-		repoPath,
-		AssetsConfig.RepoBranch
-	)
-	local res = req({
-		Url = url,
-		Method = "GET",
-		Headers = {
-			["User-Agent"] = "Roblox",
-			["Accept"] = "application/vnd.github.v3+json",
-		},
-	})
-	local body = res.Body or res.body
-	assert(type(body) == "string", "Invalid GitHub response")
-	return HttpService:JSONDecode(body)
+    local url = ("https://api.github.com/repos/%s/%s/contents/%s?ref=%s"):format(
+        AssetsConfig.RepoOwner,
+        AssetsConfig.RepoName,
+        repoPath,
+        AssetsConfig.RepoBranch
+    )
+    local res = req({
+        Url = url,
+        Method = "GET",
+        Headers = {
+            ["User-Agent"] = "Roblox",
+            ["Accept"] = "application/vnd.github.v3+json",
+        },
+    })
+    local body = res and (res.Body or res.body)
+    assert(type(body) == "string", "Invalid GitHub response")
+    return HttpService:JSONDecode(body)
 end
 
 local function downloadFile(entry, localPath)
-	if isfile(localPath) then
-		return -- already downloaded
-	end
-	local res = req({
-		Url = entry.download_url,
-		Method = "GET",
-		Headers = { ["User-Agent"] = "Roblox" },
-	})
-	if res and (res.StatusCode == 200 or res.status == 200) then
-		writefile(localPath, res.Body or res.body)
-	else
-		warn("[Assets] Failed to download:", entry.path)
-	end
+    if isfile and isfile(localPath) then
+        return
+    end
+    local res = req({
+        Url = entry.download_url,
+        Method = "GET",
+        Headers = { ["User-Agent"] = "Roblox" },
+    })
+    if res and (res.StatusCode == 200 or res.status == 200) then
+        pcall(writefile, localPath, res.Body or res.body)
+    else
+        warn("[Assets] Failed to download:", entry.path)
+    end
 end
 
 local function walk(repoPath, localBase)
-	ensureFolder(localBase)
-	local entries = fetchDir(repoPath)
-	for _, entry in entries do
-		local localPath = localBase .. "/" .. entry.name
-		if entry.type == "dir" then
-			walk(entry.path, localPath)
-		elseif entry.type == "file" and entry.download_url then
-			downloadFile(entry, localPath)
-		end
-	end
+    ensureFolder(localBase)
+    local entries = fetchDir(repoPath)
+    for _, entry in entries do
+        local localPath = localBase .. "/" .. entry.name
+        if entry.type == "dir" then
+            walk(entry.path, localPath)
+        elseif entry.type == "file" and entry.download_url then
+            downloadFile(entry, localPath)
+        end
+    end
 end
 
 local ok, err = pcall(function()
-	walk(AssetsConfig.AssetsDirName, AssetsConfig.LocalPath)
+    walk(AssetsConfig.AssetsDirName, AssetsConfig.LocalPath)
 end)
 if not ok then
-	warn("[Assets] Download failed:", err)
+    warn("[Assets] Download failed:", err)
 end
 getgenv().assetpath = AssetsConfig.LocalPath
 local a a={cache={},load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}
